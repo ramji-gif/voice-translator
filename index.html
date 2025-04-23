@@ -1,0 +1,61 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Voice Translator</title>
+  <style>
+    body { font-family: Arial; background: #f0f0f0; display:flex; align-items:center; justify-content:center; height:100vh; margin:0; }
+    .container { background:#fff; padding:20px; border-radius:8px; box-shadow:0 0 10px rgba(0,0,0,0.1); width:320px; }
+    select, button { width:100%; margin:8px 0; padding:10px; font-size:1em; }
+    audio { width:100%; margin-top:12px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Voice Translator</h2>
+    <select id="sourceLang"></select>
+    <select id="targetLang"></select>
+    <button id="startBtn">Start Recording</button>
+    <button id="stopBtn" disabled>Stop Recording</button>
+    <audio id="audioPlayer" controls></audio>
+  </div>
+  <script>
+    const langs = [
+      "Hindi","Bengali","Tamil","Telugu","Marathi","Gujarati","Kannada","Malayalam",
+      "Urdu","Punjabi","Odia","Assamese","Bhojpuri","Maithili","Chhattisgarhi","Rajasthani",
+      "Konkani","Dogri","Kashmiri","Santhali","Sindhi","Manipuri","Bodo","Sanskrit"
+    ];
+    function fill(id){
+      const sel = document.getElementById(id);
+      langs.forEach(l=>{ let o=new Option(l,l); sel.add(o); });
+    }
+    window.onload = ()=>{ fill('sourceLang'); fill('targetLang'); };
+
+    let recorder, chunks=[], sock;
+    document.getElementById('startBtn').onclick = async ()=>{
+      const src = sourceLang.value, tgt = targetLang.value;
+      sock = new WebSocket(`wss://real-time-translator-backend.onrender.com/ws/${src}/${tgt}`);
+      sock.binaryType = 'arraybuffer';
+      sock.onmessage = e=>{
+        if(typeof e.data==='string') alert(e.data);
+        else {
+          audioPlayer.src = URL.createObjectURL(new Blob([e.data],{type:'audio/mp3'}));
+          audioPlayer.play();
+        }
+      };
+      const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+      recorder = new MediaRecorder(stream);
+      recorder.ondataavailable = e=>chunks.push(e.data);
+      recorder.onstop = ()=> sock.send(new Blob(chunks,{type:'audio/webm'}));
+      recorder.start();
+      startBtn.disabled=true; stopBtn.disabled=false;
+    };
+    document.getElementById('stopBtn').onclick = ()=>{
+      recorder.stop();
+      startBtn.disabled=false; stopBtn.disabled=true;
+    };
+  </script>
+</body>
+</html>
