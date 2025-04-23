@@ -1,15 +1,17 @@
-
 import uvicorn
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 import speech_recognition as sr
 from gtts import gTTS
 from googletrans import Translator
 import io
+import os
+
 app = FastAPI()
 translator = Translator()
 
-# allow any frontend origin
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -18,7 +20,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Map language names → (STT locale, TTS code, translate code)
+app.mount("/static", StaticFiles(directory="frontend"), name="static")
+
+@app.get("/")
+def read_index():
+    return FileResponse(os.path.join("frontend", "index.html"))
+
 language_map = {
     "Hindi":          ("hi-IN", "hi", "hi"),
     "Bengali":        ("bn-IN", "bn", "bn"),
@@ -32,7 +39,6 @@ language_map = {
     "Punjabi":        ("pa-IN", "pa", "pa"),
     "Odia":           ("or-IN", "or", "or"),
     "Assamese":       ("as-IN", "as", "as"),
-    # Regional – fallback to Hindi for STT and translate
     "Bhojpuri":       ("hi-IN", "hi", "bho"),
     "Maithili":       ("hi-IN", "hi", "mai"),
     "Chhattisgarhi":  ("hi-IN", "hi", "hne"),
@@ -55,25 +61,25 @@ async def translate_ws(websocket: WebSocket, src: str, tgt: str):
         while True:
             audio_bytes = await websocket.receive_bytes()
             audio_data = sr.AudioData(audio_bytes, sample_rate=16000, sample_width=2)
-            # STT
-            stt_locale = language_map.get(src, ("hi-IN","hi","hi"))[0]
+            stt_locale = language_map.get(src, ("hi-IN", "hi", "hi"))[0]
             try:
                 text = recognizer.recognize_google(audio_data, language=stt_locale)
             except sr.UnknownValueError:
                 await websocket.send_text("Could not understand audio")
                 continue
-            # Translate
-            src_code = language_map.get(src, ("hi-IN","hi","hi"))[2]
-            tgt_code = language_map.get(tgt, ("hi-IN","hi","hi"))[2]
+            src_code = language_map.get(src, ("hi-IN", "hi", "hi"))[2]
+            tgt_code = language_map.get(tgt, ("hi-IN", "hi", "hi"))[2]
             translated = translator.translate(text, src=src_code, dest=tgt_code).text
-            # TTS
-            tts_code = language_map.get(tgt, ("hi-IN","hi","hi"))[1]
+            tts_code = language_map.get(tgt, ("hi-IN", "hi", "hi"))[1]
             tts = gTTS(text=translated, lang=tts_code)
             buf = io.BytesIO()
             tts.write_to_fp(buf)
-            await websocket.send_bytes(buf.getvalue())
+            buf.seek(0)
+            await websocket.send_bytes(buf.read())
     except WebSocketDisconnect:
         pass
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
+
+   
