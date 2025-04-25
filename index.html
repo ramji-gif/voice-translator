@@ -147,92 +147,91 @@
     <audio id="audioPlayer" controls></audio>
   </div>
   <script>
-    const langs = [
-      "Hindi","Bengali","Tamil","Telugu","Marathi","Gujarati","Kannada","Malayalam",
-      "Urdu","Punjabi","Odia","Assamese","Bhojpuri","Maithili","Chhattisgarhi","Rajasthani",
-      "Konkani","Dogri","Kashmiri","Santhali","Sindhi","Manipuri","Bodo","Sanskrit"
-    ];
-  
-    const srcSel = document.getElementById('sourceLang');
-    const tgtSel = document.getElementById('targetLang');
-    const preview = document.getElementById('langPreview');
-  
-    langs.forEach(lang => {
-      srcSel.add(new Option(lang, lang));
-      tgtSel.add(new Option(lang, lang));
-    });
-  
-    const updatePreview = () => {
-      const src = srcSel.value || '...';
-      const tgt = tgtSel.value || '...';
-      preview.textContent = `Translate from ${src} to ${tgt}`;
-    };
-  
-    srcSel.onchange = tgtSel.onchange = updatePreview;
-    window.onload = () => {
-      updatePreview();
-      const isDark = localStorage.getItem('theme') === 'dark';
-      document.body.classList.toggle('dark', isDark);
-      document.getElementById('toggleDark').checked = isDark;
-    };
-  
-    document.getElementById('toggleDark').addEventListener('change', e => {
-      const isDark = e.target.checked;
-      document.body.classList.toggle('dark', isDark);
-      localStorage.setItem('theme', isDark ? 'dark' : 'light');
-    });
-  
-    let recorder, chunks = [], sock;
-    const startBtn = document.getElementById('startBtn');
-    const stopBtn = document.getElementById('stopBtn');
-    const audioPlayer = document.getElementById('audioPlayer');
-  
-    startBtn.onclick = async () => {
-      const src = srcSel.value, tgt = tgtSel.value;
-      sock = new WebSocket(`wss://real-time-voice-translator.onrender.com/ws/${src}/${tgt}`);
-       // Updated line to use WSS
-      sock.binaryType = 'arraybuffer';
-  
-      sock.onopen = async () => {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        recorder = new MediaRecorder(stream);
-        chunks = [];
-  
-        recorder.ondataavailable = e => chunks.push(e.data);
-        recorder.onstop = () => {
-          if (sock.readyState === WebSocket.OPEN) {
-            sock.send(new Blob(chunks, { type: 'audio/webm' }));
-          }
-        };
-  
-        recorder.start();
-        startBtn.disabled = true;
-        stopBtn.disabled = false;
-      };
-  
-      sock.onmessage = e => {
-        if (typeof e.data === 'string') {
-          alert(e.data);
-        } else {
-          audioPlayer.src = URL.createObjectURL(new Blob([e.data], { type: 'audio/mp3' }));
-          audioPlayer.play();
+  const langs = [
+    "Hindi","Bengali","Tamil","Telugu","Marathi","Gujarati","Kannada","Malayalam",
+    "Urdu","Punjabi","Odia","Assamese","Bhojpuri","Maithili","Chhattisgarhi","Rajasthani",
+    "Konkani","Dogri","Kashmiri","Santhali","Sindhi","Manipuri","Bodo","Sanskrit"
+  ];
+
+  const srcSel = document.getElementById('sourceLang');
+  const tgtSel = document.getElementById('targetLang');
+  const preview = document.getElementById('langPreview');
+
+  langs.forEach(lang => {
+    srcSel.add(new Option(lang, lang));
+    tgtSel.add(new Option(lang, lang));
+  });
+
+  const updatePreview = () => {
+    const src = srcSel.value || '...';
+    const tgt = tgtSel.value || '...';
+    preview.textContent = `Translate from ${src} to ${tgt}`;
+  };
+
+  srcSel.onchange = tgtSel.onchange = updatePreview;
+  window.onload = () => {
+    updatePreview();
+    const isDark = localStorage.getItem('theme') === 'dark';
+    document.body.classList.toggle('dark', isDark);
+    document.getElementById('toggleDark').checked = isDark;
+  };
+
+  document.getElementById('toggleDark').addEventListener('change', e => {
+    const isDark = e.target.checked;
+    document.body.classList.toggle('dark', isDark);
+    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+  });
+
+  let recorder, sock;
+  const startBtn = document.getElementById('startBtn');
+  const stopBtn = document.getElementById('stopBtn');
+  const audioPlayer = document.getElementById('audioPlayer');
+
+  startBtn.onclick = async () => {
+    const src = srcSel.value;
+    const tgt = tgtSel.value;
+    sock = new WebSocket(`wss://real-time-voice-translator.onrender.com/ws/${src}/${tgt}`);
+    sock.binaryType = 'arraybuffer';
+
+    sock.onopen = async () => {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      recorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+
+      recorder.ondataavailable = e => {
+        if (e.data.size > 0 && sock.readyState === WebSocket.OPEN) {
+          sock.send(e.data); // Send small chunks in real-time
         }
       };
-  
-      sock.onerror = err => {
-        alert('WebSocket error: ' + err.message);
-        startBtn.disabled = false;
-        stopBtn.disabled = true;
-      };
+
+      recorder.start(300); // Send audio every 300ms
+
+      startBtn.disabled = true;
+      stopBtn.disabled = false;
     };
-  
-    stopBtn.onclick = () => {
-      if (recorder && recorder.state === 'recording') recorder.stop();
+
+    sock.onmessage = e => {
+      if (typeof e.data === 'string') {
+        alert(e.data);
+      } else {
+        audioPlayer.src = URL.createObjectURL(new Blob([e.data], { type: 'audio/mp3' }));
+        audioPlayer.play();
+      }
+    };
+
+    sock.onerror = err => {
+      alert('WebSocket error: ' + err.message);
       startBtn.disabled = false;
       stopBtn.disabled = true;
     };
-  </script>
-  
+  };
+
+  stopBtn.onclick = () => {
+    if (recorder && recorder.state === 'recording') recorder.stop();
+    if (sock && sock.readyState === WebSocket.OPEN) sock.close();
+    startBtn.disabled = false;
+    stopBtn.disabled = true;
+  };
+</script>
 
   
 </body>
