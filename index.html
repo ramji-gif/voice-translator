@@ -195,7 +195,10 @@
 
     sock.onopen = async () => {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      recorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+     recorder = new MediaRecorder(stream, {
+  mimeType: 'audio/webm;codecs=opus'
+    });
+ 
 
       recorder.ondataavailable = e => {
         if (e.data.size > 0 && sock.readyState === WebSocket.OPEN) {
