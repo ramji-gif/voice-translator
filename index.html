@@ -189,7 +189,8 @@
   
     startBtn.onclick = async () => {
       const src = srcSel.value, tgt = tgtSel.value;
-      sock = new WebSocket(`wss://real-time-voice-translator.onrender.com/ws/${src}/${tgt}`);  // Updated line to use WSS
+      sock = new WebSocket(`wss://voice-translator-frontend-slun.onrender.com/ws/${src}/${tgt}`);
+       // Updated line to use WSS
       sock.binaryType = 'arraybuffer';
   
       sock.onopen = async () => {
