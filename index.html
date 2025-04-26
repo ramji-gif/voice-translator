@@ -41,7 +41,11 @@
     connectBtn.onclick = () => {
       const s = src.value;
       const t = tgt.value;
-      ws = new WebSocket(`wss://voice-translator-backend-2d4s.onrender.com/ws/${s}/${t}`);
+      if (!s || !t) {
+          alert("Please select both languages.");
+          return;
+      }
+      ws = new WebSocket(`wss://voice-translator-backend-2d4s.onrender.com/ws/Hindi/English`);
       ws.binaryType = "arraybuffer";
 
       ws.onopen = () => {
