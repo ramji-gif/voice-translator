@@ -41,7 +41,7 @@
     connectBtn.onclick = () => {
       const s = src.value;
       const t = tgt.value;
-      ws = new WebSocket(`wss://your-backend-url.com/ws/${s}/${t}`);
+      ws = new WebSocket(`wss://voice-translator-backend-2d4s.onrender.com/ws/${s}/${t}`);
       ws.binaryType = "arraybuffer";
 
       ws.onopen = () => {
