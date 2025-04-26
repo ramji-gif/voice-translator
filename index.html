@@ -1,102 +1,201 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Live Voice Translator</title>
   <style>
-    body { font-family: sans-serif; text-align: center; margin-top: 60px; }
-    select, button { padding: 10px; margin: 10px; }
-    audio { margin-top: 20px; width: 80%; }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', sans-serif;
+    }
+
+    body {
+      background: linear-gradient(-45deg, #1e3c72, #2a5298, #6dd5ed, #2193b0);
+      background-size: 400% 400%;
+      animation: gradientShift 15s ease infinite;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    @keyframes gradientShift {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-radius: 16px;
+      padding: 40px;
+      width: 90%;
+      max-width: 500px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+      text-align: center;
+      color: #fff;
+    }
+
+    h2 {
+      font-size: 24px;
+      margin-bottom: 20px;
+      font-weight: 600;
+    }
+
+    label {
+      margin-top: 15px;
+      font-size: 14px;
+      display: block;
+      font-weight: 500;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+    }
+
+    select, button {
+      padding: 12px 16px;
+      margin: 10px 5px;
+      border-radius: 8px;
+      border: none;
+      font-size: 16px;
+      min-width: 180px;
+    }
+
+    select {
+      background: rgba(255,255,255,0.2);
+      color: white;
+      border: 1px solid rgba(255,255,255,0.3);
+      outline: none;
+    }
+
+    select option {
+      color: #000;
+    }
+
+    button {
+      background-color: #00c6ff;
+      color: white;
+      font-weight: bold;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      background-color: #999;
+      cursor: not-allowed;
+    }
+
+    button:hover:not(:disabled) {
+      background-color: #0072ff;
+    }
+
+    audio {
+      margin-top: 30px;
+      width: 100%;
+    }
   </style>
 </head>
 <body>
-  <h2>🌐 Two-Way Voice Translator</h2>
-  <select id="srcLang"></select>
-  <select id="tgtLang"></select>
-  <button id="connectBtn">Connect</button>
-  <button id="speakBtn" disabled>🎤 Speak</button>
-  <audio id="audioPlayer" controls></audio>
+  <div class="card">
+    <h2>🌐 Two-Way Voice Translator</h2>
 
-<script>
-const langs = [
-  "Hindi", "English", "Tamil", "Telugu", "Bengali", "Urdu", "Marathi", "Gujarati",
-  "Kannada", "Malayalam", "Punjabi", "Assamese", "Odia", "Bhojpuri", "Maithili",
-  "Chhattisgarhi", "Rajasthani", "Konkani", "Dogri", "Kashmiri", "Santhali",
-  "Sindhi", "Manipuri", "Bodo", "Sanskrit"
-];
+    <label for="srcLang">From Language</label>
+    <select id="srcLang"></select>
 
-const src = document.getElementById("srcLang");
-const tgt = document.getElementById("tgtLang");
-const connectBtn = document.getElementById("connectBtn");
-const speakBtn = document.getElementById("speakBtn");
-const audioPlayer = document.getElementById("audioPlayer");
+    <label for="tgtLang">To Language</label>
+    <select id="tgtLang"></select>
 
-langs.forEach(lang => {
-  src.add(new Option(lang, lang));
-  tgt.add(new Option(lang, lang));
-});
+    <div>
+      <button id="connectBtn">🔗 Connect</button>
+      <button id="speakBtn" disabled>🎤 Speak</button>
+    </div>
 
-let ws;
+    <audio id="audioPlayer" controls></audio>
+  </div>
 
-connectBtn.onclick = () => {
-  const s = src.value;
-  const t = tgt.value;
+  <script>
+    const langs = [
+      "Hindi", "English", "Tamil", "Telugu", "Bengali", "Urdu", "Marathi", "Gujarati",
+      "Kannada", "Malayalam", "Punjabi", "Assamese", "Odia", "Bhojpuri", "Maithili",
+      "Chhattisgarhi", "Rajasthani", "Konkani", "Dogri", "Kashmiri", "Santhali",
+      "Sindhi", "Manipuri", "Bodo", "Sanskrit"
+    ];
 
-  if (!s || !t) {
-    alert("Please select both languages.");
-    return;
-  }
+    const src = document.getElementById("srcLang");
+    const tgt = document.getElementById("tgtLang");
+    const connectBtn = document.getElementById("connectBtn");
+    const speakBtn = document.getElementById("speakBtn");
+    const audioPlayer = document.getElementById("audioPlayer");
 
-  console.log(`Connecting to WebSocket with: ${s} → ${t}`);
-  ws = new WebSocket(`wss://voice-translator-backend-2d4s.onrender.com/ws/${s}/${t}`);
-  ws.binaryType = "arraybuffer";
+    langs.forEach(lang => {
+      src.add(new Option(lang, lang));
+      tgt.add(new Option(lang, lang));
+    });
 
-  ws.onopen = () => {
-    console.log("WebSocket connection opened.");
-    speakBtn.disabled = false;
-  };
+    let ws;
 
-  ws.onmessage = e => {
-    if (typeof e.data !== "string") {
-      console.log("Received audio blob from server.");
-      const audioBlob = new Blob([e.data], { type: "audio/mp3" });
-      audioPlayer.src = URL.createObjectURL(audioBlob);
-      audioPlayer.play();
-    } else {
-      console.log("Server message:", e.data);
-    }
-  };
+    connectBtn.onclick = () => {
+      const s = src.value;
+      const t = tgt.value;
 
-  ws.onerror = err => {
-    console.error("WebSocket error:", err);
-  };
+      if (!s || !t) {
+        alert("Please select both languages.");
+        return;
+      }
 
-  ws.onclose = () => {
-    console.log("WebSocket closed.");
-    speakBtn.disabled = true;
-  };
-};
+      console.log(`Connecting to WebSocket with: ${s} → ${t}`);
+      ws = new WebSocket(`wss://voice-translator-backend-2d4s.onrender.com/ws/${s}/${t}`);
+      ws.binaryType = "arraybuffer";
 
-speakBtn.onclick = async () => {
-  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-  const recorder = new MediaRecorder(stream);
-  let chunks = [];
+      ws.onopen = () => {
+        console.log("✅ WebSocket connection opened.");
+        speakBtn.disabled = false;
+      };
 
-  recorder.ondataavailable = e => chunks.push(e.data);
-  recorder.onstop = () => {
-    const blob = new Blob(chunks, { type: "audio/webm" });
-    console.log("Sending audio blob to server...");
-    ws.send(blob);
-  };
+      ws.onmessage = e => {
+        if (typeof e.data !== "string") {
+          console.log("🔊 Received audio blob from server.");
+          const audioBlob = new Blob([e.data], { type: "audio/mp3" });
+          audioPlayer.src = URL.createObjectURL(audioBlob);
+          audioPlayer.play();
+        } else {
+          console.log("📝 Server message:", e.data);
+        }
+      };
 
-  recorder.start();
-  console.log("Recording started...");
-  setTimeout(() => {
-    console.log("Recording stopped.");
-    recorder.stop();
-  }, 3000);
-};
-</script>
+      ws.onerror = err => {
+        console.error("❌ WebSocket error:", err);
+      };
+
+      ws.onclose = () => {
+        console.log("🔌 WebSocket closed.");
+        speakBtn.disabled = true;
+      };
+    };
+
+    speakBtn.onclick = async () => {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      let chunks = [];
+
+      recorder.ondataavailable = e => chunks.push(e.data);
+      recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: "audio/webm" });
+        console.log("📤 Sending audio blob to server...");
+        ws.send(blob);
+      };
+
+      recorder.start();
+      console.log("🎙️ Recording started...");
+      setTimeout(() => {
+        console.log("🛑 Recording stopped.");
+        recorder.stop();
+      }, 3000);
+    };
+  </script>
 </body>
 </html>
+
 
