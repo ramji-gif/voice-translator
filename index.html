@@ -17,68 +17,86 @@
   <button id="speakBtn" disabled>🎤 Speak</button>
   <audio id="audioPlayer" controls></audio>
 
-  <script>
-   const langs = [
+<script>
+const langs = [
   "Hindi", "English", "Tamil", "Telugu", "Bengali", "Urdu", "Marathi", "Gujarati",
   "Kannada", "Malayalam", "Punjabi", "Assamese", "Odia", "Bhojpuri", "Maithili",
   "Chhattisgarhi", "Rajasthani", "Konkani", "Dogri", "Kashmiri", "Santhali",
   "Sindhi", "Manipuri", "Bodo", "Sanskrit"
 ];
 
-    const src = document.getElementById("srcLang");
-    const tgt = document.getElementById("tgtLang");
-    const connectBtn = document.getElementById("connectBtn");
-    const speakBtn = document.getElementById("speakBtn");
-    const audioPlayer = document.getElementById("audioPlayer");
+const src = document.getElementById("srcLang");
+const tgt = document.getElementById("tgtLang");
+const connectBtn = document.getElementById("connectBtn");
+const speakBtn = document.getElementById("speakBtn");
+const audioPlayer = document.getElementById("audioPlayer");
 
-    langs.forEach(lang => {
-      src.add(new Option(lang, lang));
-      tgt.add(new Option(lang, lang));
-    });
+langs.forEach(lang => {
+  src.add(new Option(lang, lang));
+  tgt.add(new Option(lang, lang));
+});
 
-    let ws;
+let ws;
 
-    connectBtn.onclick = () => {
-      const s = src.value;
-      const t = tgt.value;
-      if (!s || !t) {
-          alert("Please select both languages.");
-          return;
-      }
-      ws = new WebSocket(`wss://voice-translator-backend-2d4s.onrender.com/ws/Hindi/English`);
-      ws.binaryType = "arraybuffer";
+connectBtn.onclick = () => {
+  const s = src.value;
+  const t = tgt.value;
 
-      ws.onopen = () => {
-        speakBtn.disabled = false;
-        alert("Connected to voice translator.");
-      };
+  if (!s || !t) {
+    alert("Please select both languages.");
+    return;
+  }
 
-      ws.onmessage = e => {
-        if (typeof e.data !== "string") {
-          const audioBlob = new Blob([e.data], { type: "audio/mp3" });
-          audioPlayer.src = URL.createObjectURL(audioBlob);
-          audioPlayer.play();
-        } else {
-          console.log("Server:", e.data);
-        }
-      };
-    };
+  console.log(`Connecting to WebSocket with: ${s} → ${t}`);
+  ws = new WebSocket(`wss://voice-translator-backend-2d4s.onrender.com/ws/${s}/${t}`);
+  ws.binaryType = "arraybuffer";
 
-    speakBtn.onclick = async () => {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream);
-      let chunks = [];
+  ws.onopen = () => {
+    console.log("WebSocket connection opened.");
+    speakBtn.disabled = false;
+  };
 
-      recorder.ondataavailable = e => chunks.push(e.data);
-      recorder.onstop = () => {
-        const blob = new Blob(chunks, { type: "audio/webm" });
-        ws.send(blob);
-      };
+  ws.onmessage = e => {
+    if (typeof e.data !== "string") {
+      console.log("Received audio blob from server.");
+      const audioBlob = new Blob([e.data], { type: "audio/mp3" });
+      audioPlayer.src = URL.createObjectURL(audioBlob);
+      audioPlayer.play();
+    } else {
+      console.log("Server message:", e.data);
+    }
+  };
 
-      recorder.start();
-      setTimeout(() => recorder.stop(), 3000);  // Record 3s of speech
-    };
-  </script>
+  ws.onerror = err => {
+    console.error("WebSocket error:", err);
+  };
+
+  ws.onclose = () => {
+    console.log("WebSocket closed.");
+    speakBtn.disabled = true;
+  };
+};
+
+speakBtn.onclick = async () => {
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  const recorder = new MediaRecorder(stream);
+  let chunks = [];
+
+  recorder.ondataavailable = e => chunks.push(e.data);
+  recorder.onstop = () => {
+    const blob = new Blob(chunks, { type: "audio/webm" });
+    console.log("Sending audio blob to server...");
+    ws.send(blob);
+  };
+
+  recorder.start();
+  console.log("Recording started...");
+  setTimeout(() => {
+    console.log("Recording stopped.");
+    recorder.stop();
+  }, 3000);
+};
+</script>
 </body>
 </html>
 
