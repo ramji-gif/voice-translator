@@ -92,7 +92,7 @@
         return;
       }
 
-      ws = new WebSocket(`wss://voice-translator-backend-2d4s.onrender.com/ws/${src}/${tgt}/${device_Id}`);
+      ws = new WebSocket(`wss://voice-translator-backend-2d4s.onrender.com/ws/${src}/${tgt}/${device_id}`);
       ws.binaryType = "arraybuffer";
 
       ws.onopen = () => {
