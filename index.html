@@ -83,35 +83,36 @@
     const audioPlayer = document.getElementById("audioPlayer");
 
     connectBtn.onclick = () => {
-     const device_id = encodeURIComponent(document.getElementById("device_id").value.trim());
-      const src = src.value;
-      const tgt = tgt.value;
+      const device_id = encodeURIComponent(document.getElementById("deviceId").value.trim());
+      const srcLang = src.value;
+      const tgtLang = tgt.value;
 
-      if (!device_id || !src || !tgt) {
-        alert("Please fill all fields.");
-        return;
+      if (!device_id || !srcLang || !tgtLang) {
+      alert("Please fill all fields.");
+      return;
       }
 
-      ws = new WebSocket(`wss://voice-translator-backend-2d4s.onrender.com/ws/${src}/${tgt}/${device_id}`);
+      ws = new WebSocket(`wss://voice-translator-backend-2d4s.onrender.com/ws/${srcLang}/${tgtLang}/${device_id}`);
       ws.binaryType = "arraybuffer";
 
       ws.onopen = () => {
-        speakBtn.disabled = false;
+      speakBtn.disabled = false;
       };
 
       ws.onmessage = (event) => {
-        if (typeof event.data !== "string") {
-          const blob = new Blob([event.data], { type: "audio/mp3" });
-          audioPlayer.src = URL.createObjectURL(blob);
-          audioPlayer.play();
-        } else {
-          console.log("Text:", event.data);
-        }
-      };
-
-      ws.onerror = console.error;
-      ws.onclose = () => speakBtn.disabled = true;
+      if (typeof event.data !== "string") {
+      const blob = new Blob([event.data], { type: "audio/mp3" });
+      audioPlayer.src = URL.createObjectURL(blob);
+      audioPlayer.play();
+      } else {
+      console.log("Text:", event.data);
+      }
     };
+
+  ws.onerror = console.error;
+  ws.onclose = () => speakBtn.disabled = true;
+};
+
 
     speakBtn.onclick = async () => {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
