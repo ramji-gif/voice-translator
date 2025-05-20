@@ -4,184 +4,113 @@
   <meta charset="UTF-8" />
   <title>Swadeshi Voice Translator</title>
   <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: 'Segoe UI', sans-serif;
-    }
-
     body {
-      background: linear-gradient(-45deg, #1e3c72, #2a5298, #6dd5ed, #2193b0);
-      background-size: 400% 400%;
-      animation: gradientShift 15s ease infinite;
+      font-family: sans-serif;
+      background: linear-gradient(to right, #2193b0, #6dd5ed);
       display: flex;
-      justify-content: center;
+      flex-direction: column;
       align-items: center;
-      min-height: 100vh;
-    }
-
-    @keyframes gradientShift {
-      0% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
-    }
-
-    .card {
-      background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border-radius: 16px;
-      padding: 40px;
-      width: 90%;
-      max-width: 500px;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.25);
-      text-align: center;
-      color: #fff;
-    }
-
-    h2 {
-      font-size: 24px;
-      margin-bottom: 20px;
-      font-weight: 600;
-    }
-
-    label {
-      margin-top: 15px;
-      font-size: 14px;
-      display: block;
-      font-weight: 500;
-      text-shadow: 0 1px 2px rgba(0,0,0,0.2);
-    }
-
-    select, button, input {
-      padding: 12px 16px;
-      margin: 10px 5px;
-      border-radius: 8px;
-      border: none;
-      font-size: 16px;
-      min-width: 180px;
-    }
-
-    select, input {
-      background: rgba(255,255,255,0.2);
+      padding: 50px;
       color: white;
-      border: 1px solid rgba(255,255,255,0.3);
-      outline: none;
     }
-
-    input::placeholder {
-      color: #ccc;
+    select, input, button, textarea {
+      margin: 10px;
+      padding: 10px;
+      border-radius: 5px;
     }
-
-    select option {
-      color: #000;
+    textarea {
+      width: 300px;
+      height: 80px;
     }
-
     button {
-      background-color: #00c6ff;
+      background: #007bff;
       color: white;
-      font-weight: bold;
-      transition: all 0.3s ease;
       cursor: pointer;
     }
-
     button:disabled {
-      background-color: #999;
-      cursor: not-allowed;
-    }
-
-    button:hover:not(:disabled) {
-      background-color: #0072ff;
-    }
-
-    audio {
-      margin-top: 30px;
-      width: 100%;
+      background: gray;
     }
   </style>
 </head>
 <body>
-  <div class="card">
-    <h2>🌐 Swadeshi Voice Translator</h2>
+  <h2>🌐 Swadeshi Voice Translator</h2>
 
-    <label for="deviceId">Device ID (e.g. device1, device2)</label>
-    <input type="text" id="deviceId" placeholder="Enter your device ID" />
-
-    <label for="srcLang">From Language</label>
-    <select id="srcLang"></select>
-
-    <label for="tgtLang">To Language</label>
-    <select id="tgtLang"></select>
-
-    <div>
-      <button id="connectBtn">🔗 Connect</button>
-      <button id="speakBtn" disabled>🎤 Speak</button>
-    </div>
-
-    <audio id="audioPlayer" controls></audio>
+  <div>
+    <label>Device ID:</label>
+    <input id="deviceId" placeholder="e.g. device1" />
   </div>
 
+  <div>
+    <label>From:</label>
+    <select id="srcLang"></select>
+
+    <label>To:</label>
+    <select id="tgtLang"></select>
+  </div>
+
+  <div>
+    <button id="connectBtn">🔗 Connect</button>
+    <button id="speakBtn" disabled>🎤 Speak</button>
+  </div>
+
+  <audio id="audioPlayer" controls></audio>
+
+  <hr style="width: 100%; margin: 30px 0;" />
+
+  <h3>📝 Text Translator</h3>
+  <textarea id="inputText" placeholder="Enter text to translate..."></textarea><br/>
+  <button onclick="translateText()">➡️ Translate</button><br/>
+  <textarea id="outputText" readonly placeholder="Translated text..."></textarea>
+
   <script>
-     const langs = [
-    "Assamese", "Bengali", "Bodo", "Dogri", "Gujarati", "Hindi", "Kannada", "Kashmiri",
-    "Konkani", "Maithili", "Malayalam", "Manipuri", "Marathi", "Odia", "Punjabi",
-    "Sanskrit", "Santhali", "Sindhi", "Tamil", "Telugu", "Urdu", "English",
-    "Bhojpuri", "Chhattisgarhi", "Rajasthani"
-     ];
+    const langs = [
+      "Assamese", "Bengali", "Bodo", "Dogri", "Gujarati", "Hindi", "Kannada", "Kashmiri",
+      "Konkani", "Maithili", "Malayalam", "Manipuri", "Marathi", "Odia", "Punjabi",
+      "Sanskrit", "Santhali", "Sindhi", "Tamil", "Telugu", "Urdu", "English",
+      "Bhojpuri", "Chhattisgarhi", "Rajasthani"
+    ];
 
     const src = document.getElementById("srcLang");
     const tgt = document.getElementById("tgtLang");
-    const deviceInput = document.getElementById("deviceId");
-    const connectBtn = document.getElementById("connectBtn");
-    const speakBtn = document.getElementById("speakBtn");
-    const audioPlayer = document.getElementById("audioPlayer");
-
     langs.forEach(lang => {
       src.add(new Option(lang, lang));
       tgt.add(new Option(lang, lang));
     });
 
     let ws;
+    const connectBtn = document.getElementById("connectBtn");
+    const speakBtn = document.getElementById("speakBtn");
+    const audioPlayer = document.getElementById("audioPlayer");
 
     connectBtn.onclick = () => {
-      const s = src.value;
-      const t = tgt.value;
-      const deviceId = deviceInput.value.trim();
+      const deviceId = document.getElementById("deviceId").value.trim();
+      const srcLang = src.value;
+      const tgtLang = tgt.value;
 
-      if (!s || !t || !deviceId) {
-        alert("Please select both languages and enter your device ID.");
+      if (!deviceId || !srcLang || !tgtLang) {
+        alert("Please fill all fields.");
         return;
       }
 
-      console.log(`🔗 Connecting as ${deviceId} (${s} → ${t})`);
-      ws = new WebSocket(`wss://voice-translator-backend-2d4s.onrender.com/ws/${s}/${t}/${deviceId}`);
+      ws = new WebSocket(`wss://your-backend-url/ws/${srcLang}/${tgtLang}/${deviceId}`);
       ws.binaryType = "arraybuffer";
 
       ws.onopen = () => {
-        console.log("✅ WebSocket connected");
         speakBtn.disabled = false;
       };
 
-      ws.onmessage = e => {
-        if (typeof e.data !== "string") {
-          console.log("🔊 Received translated audio");
-          const audioBlob = new Blob([e.data], { type: "audio/mp3" });
-          audioPlayer.src = URL.createObjectURL(audioBlob);
+      ws.onmessage = (event) => {
+        if (typeof event.data !== "string") {
+          const blob = new Blob([event.data], { type: "audio/mp3" });
+          audioPlayer.src = URL.createObjectURL(blob);
           audioPlayer.play();
         } else {
-          console.log("ℹ️ Message:", e.data);
+          console.log("Text:", event.data);
         }
       };
 
-      ws.onerror = err => {
-        console.error("❌ WebSocket error:", err);
-      };
-
-      ws.onclose = () => {
-        console.log("🔌 WebSocket closed");
-        speakBtn.disabled = true;
-      };
+      ws.onerror = console.error;
+      ws.onclose = () => speakBtn.disabled = true;
     };
 
     speakBtn.onclick = async () => {
@@ -192,20 +121,29 @@
       recorder.ondataavailable = e => chunks.push(e.data);
       recorder.onstop = () => {
         const blob = new Blob(chunks, { type: "audio/webm" });
-        console.log("📤 Sending audio...");
         ws.send(blob);
       };
 
       recorder.start();
-      console.log("🎙️ Recording...");
-      setTimeout(() => {
-        console.log("🛑 Stopping...");
-        recorder.stop();
-      }, 3000);
+      setTimeout(() => recorder.stop(), 3000);
     };
+
+    async function translateText() {
+      const text = document.getElementById("inputText").value;
+      const srcLang = src.value;
+      const tgtLang = tgt.value;
+
+      const response = await fetch("https://your-backend-url/translate-only/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text, source_lang: srcLang, target_lang: tgtLang }),
+      });
+
+      const data = await response.json();
+      document.getElementById("outputText").value = data.translated_text || "Translation failed.";
+    }
   </script>
 </body>
 </html>
 
-
-
+      
