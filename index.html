@@ -83,7 +83,7 @@
     const audioPlayer = document.getElementById("audioPlayer");
 
     connectBtn.onclick = () => {
-      const deviceId = document.getElementById("deviceId").value.trim();
+     const deviceId = encodeURIComponent(document.getElementById("deviceId").value.trim());
       const srcLang = src.value;
       const tgtLang = tgt.value;
 
