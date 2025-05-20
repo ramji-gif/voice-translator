@@ -106,12 +106,12 @@
       audioPlayer.play();
       } else {
       console.log("Text:", event.data);
-      }
-    };
+        }
+      };
 
-  ws.onerror = console.error;
-  ws.onclose = () => speakBtn.disabled = true;
-};
+      ws.onerror = console.error;
+      ws.onclose = () => speakBtn.disabled = true;
+   };
 
 
     speakBtn.onclick = async () => {
